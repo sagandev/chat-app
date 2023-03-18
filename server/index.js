@@ -1,18 +1,18 @@
-const express = require("express");
-const app = express();
-const http = require("http");
+import express from "express";
+import * as dotenv from "dotenv";
+import http from"http");
 const server = http.createServer(app);
-const mongo = require("mongoose");
-const { Server } = require("socket.io");
-const io = new Server(server, {
+import mongo from"mongoose");
+import { Server } from"socket.io");
+const io  = new Server(server, {
   cors: {
     origin: "http://localhost:3000",
   },
 });
-const cors = require("cors");
-const chat = require("./src/routes/chat.js");
-const auth = require("./src/routes/authorize.js");
-const Message = require("./src/schema/message");
+import cors from"cors";
+import chat from"./src/routes/chat.js";
+import auth from"./src/routes/authorize.js";
+import Message from"./src/schema/message";
 
 require("dotenv").config();
 app.use(express.json());

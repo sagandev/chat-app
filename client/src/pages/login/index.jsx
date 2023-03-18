@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, forwardRef } from "react";
 import CssBaseline from "@mui/material/CssBaseline";
 import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
@@ -14,9 +14,11 @@ import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Link from "@mui/material/Link";
+import Snackbar from '@mui/material/Snackbar';
+import MuiAlert, { AlertProps } from '@mui/material/Alert';
 import { useFormik, Field } from "formik";
 import { useNavigate } from "react-router-dom";
-import { LoginPass } from "../../utils/api";
+import { Login } from "../../utils/api";
 import Cookies from "universal-cookie";
 
 const cookies = new Cookies();
@@ -30,12 +32,26 @@ const validate = (values) => {
   }
   return errors;
 };
+const Alert = forwardRef(function Alert(
+  props,
+  ref,
+) {
+  return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
+});
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
+  const [open, setOpen] = useState(false);
   const handleClickShowPassword = () => setShowPassword((show) => !show);
 
   const handleMouseDownPassword = (event) => {
     event.preventDefault();
+  };
+  const handleClose = (event, reason) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+
+    setOpen(false);
   };
   const [data, setData] = useState([]);
   const navigate = useNavigate();
@@ -47,7 +63,13 @@ export default function LoginPage() {
     validate,
     onSubmit: (values) => {
       const { username, password } = values;
-      console.log(values);
+      Login(username, password).then(({data}) => {
+        setOpen(true);
+        setData(data);
+        cookies.set("TOKEN", data.token, { path: "/" });
+      }).catch(e => {
+
+      })
     },
   });
   return (
@@ -120,6 +142,11 @@ export default function LoginPage() {
             </Button>
           </Stack>
         </form>
+        <Snackbar open={open} autoHideDuration={6000} onClose={handleClose}>
+        <Alert onClose={handleClose} severity="success" sx={{ width: '100%' }}>
+          This is a success message!
+        </Alert>
+      </Snackbar>
       </Container>
     </>
   );

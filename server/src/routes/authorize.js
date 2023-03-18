@@ -1,18 +1,18 @@
-const express = require("express");
-const dotenv = require("dotenv");
+import express from "express";
+import * as dotenv from "dotenv";
 dotenv.config();
 const app = express.Router();
-const Register = require("../schema/register.js");
-const sha256 = require("crypto-js/sha256.js");
-const mailer = require("../utils/mail.js");
-const generator = require("generate-password");
-const bcrypt = require("bcrypt");
-const Recovery = require("../schema/recovery.js");
-const jwt = require("jsonwebtoken");
-const auth = require("../utils/auth.js");
-const views = require("../schema/views.js");
-const moment = require("moment");
-const uniqueString = require('unique-string');
+import Register from "../schema/register.js";
+import sha256 from "crypto-js/sha256.js";
+import mailer from "../utils/mail.js";
+import generator from "generate-password";
+import bcrypt from "bcrypt";
+import Recovery from "../schema/recovery.js";
+import jwt from "jsonwebtoken";
+import auth from "../utils/auth.js";
+import views from "../schema/views.js";
+import moment from "moment";
+import uniqueString from 'unique-string';
 app.post("/register", async (req, res) => {
   try {
     const { username, password, email, sex, dateOfBirth, uAvatar } = req.body;
@@ -96,21 +96,6 @@ app.post("/login", async (req, res) => {
               process.env.SECRET,
               { expiresIn: "24h" }
             );
-            views
-              .findOne({ data: "views" })
-              .select("viewsCount")
-              .lean()
-              .then(async (result) => {
-                console.log(result.viewsCount);
-                try {
-                  await views.findOneAndUpdate(
-                    { data: "views" },
-                    { viewsCount: parseInt(result.viewsCount) + 1 }
-                  );
-                } catch (e) {
-                  console.log(e);
-                }
-              });
             res.status(200).send({
               success: true,
               message: "Logged in successfully",

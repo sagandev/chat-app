@@ -1,6 +1,6 @@
-import nodemailer from "nodemailer";
-import smtpTransport from "nodemailer-smtp-transport";
-export default async function mailer(receiver, title, text, html) {
+const nodemailer = require("nodemailer");
+const smtpTransport = require("nodemailer-smtp-transport");
+async function mailer(receiver, title, text, html) {
   let transporter = nodemailer.createTransport(
     smtpTransport({
       host: "ssl0.ovh.net",
@@ -20,3 +20,5 @@ export default async function mailer(receiver, title, text, html) {
     html: html, // html body
   });
 }
+
+module.exports = mailer;

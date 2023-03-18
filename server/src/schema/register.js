@@ -4,7 +4,7 @@ const schema = new mongodb.Schema({
     password: {type: String, minlength: 8, require: true},
     email: {type: String, require: true, unique: true},
     dateOfBirth: {type: String, require: true},
-    sex: {type: String, default: "Nie podano", require: true},
+    sex: {type: String, default: "N/A", require: true},
     role: {type: String, require: true},
     avatar: {type: String, require: true},
     createdAt: {type: String}

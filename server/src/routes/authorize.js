@@ -24,13 +24,13 @@ app.post("/register", async (req, res) => {
     if (user || userName) {
       return res.status(401).send({
         message:
-          "Użytkownik o podanym adresie email lub nazwie użytkownika już istnieje",
+          "User does not exists",
       });
     }
     if (password.length < 8) {
       return res
         .status(400)
-        .send({ message: "Hasło musi składać sie z conajmniej 8 znaków" });
+        .send({ message: "Wrong password length" });
     }
     try {
       const passHashed = await bcrypt.hash(
@@ -38,7 +38,7 @@ app.post("/register", async (req, res) => {
         Number(process.env.bcrypt_salt)
       );
       const date = moment().subtract(10, "days").calendar();
-      const us = "Użytkownik";
+      const us = "User";
       Register.create({
         username: username,
         password: passHashed,
@@ -51,20 +51,20 @@ app.post("/register", async (req, res) => {
       })
         .then((user) => {
           res.status(200).json({
-            message: "Zarejestrowano pomyślnie.",
+            message: "Signed up successfully",
             user,
           });
         })
         .catch((e) => {
           console.log(e);
           res.status(401).json({
-            message: "Rejestracja zakończona niepowodzeniem.",
+            message: "Signed up failed",
           });
         });
     } catch (e) {
       console.log(e);
       res.status(401).json({
-        message: "Rejestracja zakończona niepowodzeniem",
+        message: "Signed up failed",
       });
     }
   } catch (e) {
@@ -86,7 +86,7 @@ app.post("/login", async (req, res) => {
               return res.status(401).json({
                 success: false,
                 message:
-                  "Logowanie nie powiodło się. Błedna nazwa użytkownika lub hasło",
+                  "Log in failed. Incorrect username or password",
               });
             const token = jwt.sign(
               {
@@ -113,7 +113,7 @@ app.post("/login", async (req, res) => {
               });
             res.status(200).send({
               success: true,
-              message: "Logowanie powiodło się",
+              message: "Logged in successfully",
               token,
               user: {
                 username: user.username,
@@ -134,7 +134,7 @@ app.post("/login", async (req, res) => {
         return res.status(401).json({
           success: false,
           message:
-            "Logowanie nie powiodło się. Błedna nazwa użytkownika lub hasło",
+            "Log in failed. Incorrect username or password",
         });
       });
   } catch (e) {
@@ -153,7 +153,7 @@ app.post("/recovery-key", async (req, res) => {
       if (!result) {
         return res
           .status(404)
-          .json({ message: "Nie znaleziono konta o podanym adresie email" });
+          .json({ message: "Account does not exists" });
       } else {
         await Recovery.findOne({ email: email })
           .select("email")
@@ -170,14 +170,14 @@ app.post("/recovery-key", async (req, res) => {
                   try {
                     mailer(
                       user.email,
-                      `[${user.email}] Twój klucz odzyskiwania`,
-                      `Klucz odzyskiwania`,
-                      `Twój klucz odzyskiwania to: <b>${user.recoveryKey}</b><br><br><i>projekt.saganowski.ovh</i>`
+                      `[${user.email}] Your recovery key`,
+                      `Recovery key`,
+                      `Your recovery key: <b>${user.recoveryKey}</b><br><br><i>chatapp.saganowski.ovh</i>`
                     );
                     return res.status(200).json({
                       success: true,
                       message:
-                        "Klucz odzyskiwania został wyslany na twoj adres email",
+                        "Recovery key has been sent",
                     });
                   } catch (error) {
                     return res.status(500);
@@ -189,7 +189,7 @@ app.post("/recovery-key", async (req, res) => {
             } else {
               return res.status(400).json({
                 success: true,
-                message: "Klucz odzyskiwania zostal juz wyslany!",
+                message: "Recovery key has been already sent",
               });
             }
           })

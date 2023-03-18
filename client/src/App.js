@@ -20,9 +20,11 @@ function App() {
       <CssBaseline />
       <LocalizationProvider dateAdapter={AdapterDayjs}>
         <Routes>
-          <Route path="/" exact element={<MainPage />}></Route>
-          <Route path="/room/:roomId" exact element={<RoomPage />}></Route>
-          <Route path="/profile" exact element={<ProfilePage />}></Route>
+          <Route element={<ProtectedRoutes />}>
+            <Route path="/" exact element={<MainPage />}></Route>
+            <Route path="/room/:roomId" exact element={<RoomPage />}></Route>
+            <Route path="/profile" exact element={<ProfilePage />}></Route>
+          </Route>
           <Route path="/login" element={<LoginPage />}></Route>
           <Route path="/signup" element={<RegisterPage />}></Route>
         </Routes>

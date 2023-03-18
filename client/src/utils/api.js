@@ -1,5 +1,5 @@
 import axios from "axios";
-export function RegisterPass(nick, email, pass, dateOfbirth, sex) {
+export function Register(nick, email, pass, dateOfbirth, sex) {
   return axios.post(`http://192.168.0.15:3001/authorize/register`, {
     username: nick,
     email: email,
@@ -9,7 +9,7 @@ export function RegisterPass(nick, email, pass, dateOfbirth, sex) {
   });
 }
 
-export function LoginPass(username, password) {
+export function Login(username, password) {
   return axios.post(`http://192.168.0.15:3001/authorize/login`, {
     username: username,
     password: password,
@@ -22,7 +22,7 @@ export function GenerateKey(email) {
   });
 }
 
-export function RecoveryPass(email, key, pass) {
+export function Recovery(email, key, pass) {
   return axios.post(`http://192.168.0.15:3001/authorize/password-recovery`, {
     email: email,
     recoveryKey: key,

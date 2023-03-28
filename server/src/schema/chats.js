@@ -1,5 +1,5 @@
-const mongo = require("mongoose");
-module.exports = mongo.model(
+import mongo from "mongoose";
+export default mongo.model(
   "chats",
   new mongo.Schema({
     creator: { type: String, require: true },

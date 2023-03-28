@@ -1,6 +1,4 @@
 import { useState, forwardRef } from "react";
-import CssBaseline from "@mui/material/CssBaseline";
-import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
 import FormControl from "@mui/material/FormControl";
 import TextField from "@mui/material/TextField";
@@ -14,9 +12,9 @@ import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Link from "@mui/material/Link";
-import Snackbar from '@mui/material/Snackbar';
-import MuiAlert, { AlertProps } from '@mui/material/Alert';
-import { useFormik, Field } from "formik";
+import Snackbar from "@mui/material/Snackbar";
+import MuiAlert from "@mui/material/Alert";
+import { Formik} from "formik";
 import { useNavigate } from "react-router-dom";
 import { Login } from "../../utils/api";
 import Cookies from "universal-cookie";
@@ -32,10 +30,7 @@ const validate = (values) => {
   }
   return errors;
 };
-const Alert = forwardRef(function Alert(
-  props,
-  ref,
-) {
+const Alert = forwardRef(function Alert(props, ref) {
   return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
 });
 export default function LoginPage() {
@@ -47,107 +42,141 @@ export default function LoginPage() {
     event.preventDefault();
   };
   const handleClose = (event, reason) => {
-    if (reason === 'clickaway') {
+    if (reason === "clickaway") {
       return;
     }
-
     setOpen(false);
   };
-  const [data, setData] = useState([]);
+  const [alert, setAlertData] = useState([]);
   const navigate = useNavigate();
-  const formik = useFormik({
-    initialValues: {
-      username: "",
-      password: "",
-    },
-    validate,
-    onSubmit: (values) => {
-      const { username, password } = values;
-      Login(username, password).then(({data}) => {
-        setOpen(true);
-        setData(data);
-        cookies.set("TOKEN", data.token, { path: "/" });
-      }).catch(e => {
 
-      })
-    },
-  });
+  const handleSubmit = async (values) => {
+    const { username, password } = values;
+    try {
+      await Login(username, password)
+        .then(({ data }) => {
+          setAlertData({
+            type: "success",
+            message: data.message,
+          });
+          setOpen(true);
+          console.log(data.user)
+          localStorage.setItem("user", JSON.stringify(data.user))
+          cookies.set("TOKEN", data.token, { path: "/" });
+          navigate("/");
+        })
+        .catch((e) => {
+          setAlertData({
+            type: "error",
+            message: e.response.data.message,
+          });
+          setOpen(true);
+        });
+    } catch (e) {
+      return;
+    }
+  };
   return (
     <>
-      <Container maxWidth="xs">
-        <form onSubmit={formik.handleSubmit}>
-          <Stack spacing={2} sx={{ padding: 1, marginTop: "20vh" }}>
-            <Typography variant="h4" component="h4" align="center">
-              LOG IN
-            </Typography>
-            <TextField
-              error={formik.errors.username}
-              sx={{ width: "100%" }}
-              id="outlined-basic"
-              name="username"
-              label="Username"
-              variant="outlined"
-              onChange={formik.handleChange}
-              value={formik.values.username}
-            />
-            <FormControl sx={{ width: "100%" }} variant="outlined" error={formik.errors.password}>
-              <InputLabel htmlFor="outlined-adornment-password">
-                Password
-              </InputLabel>
-              <OutlinedInput
-                id="outlined-adornment-password"
-                name="password"
-                type={showPassword ? "text" : "password"}
-                onChange={formik.handleChange}
-                value={formik.values.password}
-                endAdornment={
-                  <InputAdornment position="end">
-                    <IconButton
-                      aria-label="toggle password visibility"
-                      onClick={handleClickShowPassword}
-                      onMouseDown={handleMouseDownPassword}
-                      edge="end"
+        <Container maxWidth="xs">
+          <Formik
+            initialValues={{ username: "", password: "" }}
+            validate={validate}
+            onSubmit={(values) => handleSubmit(values)}
+          >
+            {(props) => (
+              <form onSubmit={props.handleSubmit}>
+                <Stack spacing={2} sx={{ padding: 1, marginTop: "20vh" }}>
+                  <Typography variant="h4" component="h4" align="center">
+                    LOG IN
+                  </Typography>
+                  <TextField
+                    error={Boolean(props.errors.username)}
+                    sx={{ width: "100%" }}
+                    id="outlined-basic"
+                    name="username"
+                    label="Username"
+                    variant="outlined"
+                    onChange={props.handleChange}
+                    value={props.values.username}
+                  />
+                  <FormControl
+                    sx={{ width: "100%" }}
+                    variant="outlined"
+                    error={Boolean(props.errors.password)}
+                  >
+                    <InputLabel htmlFor="outlined-adornment-password">
+                      Password
+                    </InputLabel>
+                    <OutlinedInput
+                      id="outlined-adornment-password"
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      onChange={props.handleChange}
+                      value={props.values.password}
+                      endAdornment={
+                        <InputAdornment position="end">
+                          <IconButton
+                            aria-label="toggle password visibility"
+                            onClick={handleClickShowPassword}
+                            onMouseDown={handleMouseDownPassword}
+                            edge="end"
+                          >
+                            {showPassword ? <VisibilityOff /> : <Visibility />}
+                          </IconButton>
+                        </InputAdornment>
+                      }
+                      label="Password"
+                    />
+                  </FormControl>
+                  <Stack
+                    spacing={2}
+                    direction="row"
+                    justifyContent="space-between"
+                  >
+                    <Link
+                      component="button"
+                      variant="body2"
+                      onClick={() => {
+                        console.info("I'm a button.");
+                      }}
+                      align="right"
                     >
-                      {showPassword ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                }
-                label="Password"
-              />
-            </FormControl>
-            <Stack spacing={2} direction="row" justifyContent="space-between">
-              <Link
-                component="button"
-                variant="body2"
-                onClick={() => {
-                  console.info("I'm a button.");
-                }}
-                align="right"
-              >
-                Forgot password?
-              </Link>
-              <Link
-                component="button"
-                variant="body2"
-                onClick={() => {
-                  navigate('/signup')
-                }}
-                align="right"
-              >
-                Sign Up
-              </Link>
-            </Stack>
-            <Button type="submit" variant="contained" sx={{ width: "100%" }}>
-              Log In
-            </Button>
-          </Stack>
-        </form>
-        <Snackbar open={open} autoHideDuration={6000} onClose={handleClose}>
-        <Alert onClose={handleClose} severity="success" sx={{ width: '100%' }}>
-          This is a success message!
-        </Alert>
-      </Snackbar>
-      </Container>
+                      Forgot password?
+                    </Link>
+                    <Link
+                      component="button"
+                      variant="body2"
+                      onClick={() => {
+                        navigate("/signup");
+                      }}
+                      align="right"
+                    >
+                      Sign Up
+                    </Link>
+                  </Stack>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    sx={{ width: "100%" }}
+                  >
+                    Log In
+                  </Button>
+                </Stack>
+              </form>
+            )}
+          </Formik>
+
+          <Snackbar open={open} autoHideDuration={4000} onClose={handleClose}>
+            <Alert
+              onClose={handleClose}
+              severity={alert.type}
+              sx={{ width: "100%" }}
+            >
+              {alert.message}
+            </Alert>
+          </Snackbar>
+        </Container>
     </>
   );
 }

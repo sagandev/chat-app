@@ -1,6 +1,7 @@
-const express = require('express')
+import express from 'express'
 const app = express()
-const Chat = require("../schema/chats")
+import Chat from "../schema/chats.js"
+import Message from '../schema/message.js'
 app.get('/chat', async (req, res) => {
     console.log(req.body)
     if (!req.body) return res.status(400).send({ message: "Unauthorized" });
@@ -22,5 +23,9 @@ app.get('/create-chat', async (req, res) => {
 
     res.send(newChat.code)
 })
-
-module.exports = app;
+app.get("/global", async (req, res) => {
+    const messages = await Message.find({});
+    console.log(messages)
+    res.send(JSON.stringify(messages))
+})
+export default app;

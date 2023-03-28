@@ -1,6 +1,5 @@
-import { useState } from "react";
-import CssBaseline from "@mui/material/CssBaseline";
-import Box from "@mui/material/Box";
+import { useState, forwardRef } from "react";
+
 import Container from "@mui/material/Container";
 import FormControl from "@mui/material/FormControl";
 import TextField from "@mui/material/TextField";
@@ -14,11 +13,16 @@ import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Link from "@mui/material/Link";
+import Snackbar from "@mui/material/Snackbar";
+import MuiAlert, { AlertProps } from "@mui/material/Alert";
 import { useFormik, Field } from "formik";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import Select, { SelectChangeEvent } from "@mui/material/Select";
+import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
+import dayjs, { Dayjs } from "dayjs";
+import { Register } from "../../utils/api";
+import moment from 'moment'
 import Cookies from "universal-cookie";
 const validate = (values) => {
   const errors = {};
@@ -44,35 +48,68 @@ const validate = (values) => {
   } else if (values.confirm !== values.password) {
     errors.confirm = "Hasła nie są takie same";
   }
-  if (!values.dateOfBirth) {
-    errors.dateOfBirth = "Podaj datę urodzenia";
+  if (!values.dateofbirth) {
+    errors.dateofbirth = "*";
   }
   if (!values.gender) {
     errors.gender = "*";
   }
   return errors;
 };
+const Alert = forwardRef(function Alert(props, ref) {
+  return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
+});
 export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [alert, setAlertData] = useState([]);
   const handleClickShowPassword = () => setShowPassword((show) => !show);
-
+  const navigate = useNavigate();
   const handleMouseDownPassword = (event) => {
     event.preventDefault();
   };
+  const handleClose = (event, reason) => {
+    if (reason === "clickaway") {
+      return;
+    }
+
+    setOpen(false);
+  };
+  const [value, setValue] = useState();
   const formik = useFormik({
     initialValues: {
       username: "",
       email: "",
       password: "",
       confirm: "",
-      dateOfBirth: "",
+      dateofbirth: "",
       gender: "",
     },
     validate,
     onSubmit: (values) => {
       //console.log(values);
-      const { username, email, password, dateOfBirth, gender } = values;
-      console.log(values);
+      const { username, email, password, gender } = values;
+      const dateofbirth = moment(values.dateofbirth).format("DD/MM/YYYY");
+      console.log(username, email, password, dateofbirth, gender);
+      Register(username, email, password, dateofbirth, gender)
+        .then(({ data }) => {
+          setAlertData({
+            type: "success",
+            message: data.message,
+          });
+          setOpen(true);
+          setTimeout(function(){
+            navigate("/login")
+          }, 3000)
+        })
+        .catch((e) => {
+          console.log(e)
+          setAlertData({
+            type: "error",
+            message: e.response.data.message,
+          });
+          setOpen(true);
+        });
     },
   });
   return (
@@ -84,7 +121,7 @@ export default function RegisterPage() {
               SIGN UP
             </Typography>
             <TextField
-              error={formik.errors.username}
+              error={Boolean(formik.errors.username)}
               sx={{ width: "100%" }}
               id="outlined-basic"
               name="username"
@@ -94,7 +131,7 @@ export default function RegisterPage() {
               value={formik.values.username}
             />
             <TextField
-              error={formik.errors.email}
+              error={Boolean(formik.errors.email)}
               sx={{ width: "100%" }}
               id="outlined-basic"
               name="email"
@@ -107,7 +144,7 @@ export default function RegisterPage() {
               <FormControl
                 sx={{ width: "100%" }}
                 variant="outlined"
-                error={formik.errors.password}
+                error={Boolean(formik.errors.password)}
               >
                 <InputLabel htmlFor="outlined-adornment-password">
                   Password
@@ -137,7 +174,7 @@ export default function RegisterPage() {
               <FormControl
                 sx={{ width: "100%" }}
                 variant="outlined"
-                error={formik.errors.confirm}
+                error={Boolean(formik.errors.confirm)}
               >
                 <InputLabel htmlFor="outlined-adornment-password">
                   Confirm
@@ -166,8 +203,10 @@ export default function RegisterPage() {
             </Stack>
             <DatePicker
               label="Date of birth"
-              value={formik.values.dateOfBirth}
-              onChange={formik.handleChange}
+              name="dateofbirth"
+              inputFormat="DD/MM/YYYY"
+              value={formik.values.dateofbirth}
+              onChange={date => formik.setFieldValue('dateofbirth', date)}
             />
             <FormControl fullWidth>
               <InputLabel id="demo-simple-select-label">Gender</InputLabel>
@@ -201,6 +240,15 @@ export default function RegisterPage() {
             </Button>
           </Stack>
         </form>
+        <Snackbar open={open} autoHideDuration={4000} onClose={handleClose}>
+          <Alert
+            onClose={handleClose}
+            severity={alert.type}
+            sx={{ width: "100%" }}
+          >
+            {alert.message}
+          </Alert>
+        </Snackbar>
       </Container>
     </>
   );

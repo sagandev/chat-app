@@ -10,27 +10,23 @@ import bcrypt from "bcrypt";
 import Recovery from "../schema/recovery.js";
 import jwt from "jsonwebtoken";
 import auth from "../utils/auth.js";
-import views from "../schema/views.js";
 import moment from "moment";
-import uniqueString from 'unique-string';
+import uniqueString from "unique-string";
 app.post("/register", async (req, res) => {
   try {
-    const { username, password, email, sex, dateOfBirth, uAvatar } = req.body;
+    const { username, password, email, sex, dateOfBirth } = req.body;
     if (!req.body) return res.status(400).send({ message: "Unauthorized" });
     if (!password || !username || !email || !sex || !dateOfBirth)
       return res.status(400).send({ message: "Unauthorized" });
     let user = await Register.findOne({ email: email });
     let userName = await Register.findOne({ username: username });
     if (user || userName) {
-      return res.status(401).send({
-        message:
-          "User does not exists",
+      return res.status(400).send({
+        message: "User already exists!",
       });
     }
     if (password.length < 8) {
-      return res
-        .status(400)
-        .send({ message: "Wrong password length" });
+      return res.status(400).send({ message: "Wrong password length" });
     }
     try {
       const passHashed = await bcrypt.hash(
@@ -39,6 +35,7 @@ app.post("/register", async (req, res) => {
       );
       const date = moment().subtract(10, "days").calendar();
       const us = "User";
+      const colors = ['red', 'green', 'purple', 'lightblue', 'yellow', 'orange'];
       Register.create({
         username: username,
         password: passHashed,
@@ -46,13 +43,24 @@ app.post("/register", async (req, res) => {
         sex: sex,
         dateOfBirth: dateOfBirth,
         role: us,
-        avatar: uAvatar ? uAvatar : "https://i.imgur.com/jWSUlwq.png",
+        avatar: username.substring(0, 2),
         createdAt: date,
+        avatarColor: colors[Math.floor(Math.random() * colors.length)]
       })
         .then((user) => {
+          const u = {
+            avatar: user.avatar,
+            username: user.username,
+            createdAt: user.createdAt,
+            dateOfBirth: user.dateOfBirth,
+            email: user.email,
+            role: user.role,
+            sex: user.sex,
+            avatarColor: user.avatarColor
+          };
           res.status(200).json({
             message: "Signed up successfully",
-            user,
+            u,
           });
         })
         .catch((e) => {
@@ -73,8 +81,10 @@ app.post("/register", async (req, res) => {
 });
 
 app.post("/login", async (req, res) => {
+  console.log(process.env.SECRET);
   try {
     const { username, password } = req.body;
+    console.log(!password || !username);
     if (!password || !username)
       return res.status(400).send({ message: "Unauthorized" });
     await Register.findOne({ username: username })
@@ -85,8 +95,7 @@ app.post("/login", async (req, res) => {
             if (!response)
               return res.status(401).json({
                 success: false,
-                message:
-                  "Log in failed. Incorrect username or password",
+                message: "Log in failed. Incorrect username or password",
               });
             const token = jwt.sign(
               {
@@ -96,6 +105,7 @@ app.post("/login", async (req, res) => {
               process.env.SECRET,
               { expiresIn: "24h" }
             );
+            console.log(user)
             res.status(200).send({
               success: true,
               message: "Logged in successfully",
@@ -105,11 +115,12 @@ app.post("/login", async (req, res) => {
                 email: user.email,
                 avatar: user.avatar,
                 id: user._id,
+                avatarColor: user.avatarColor,
                 dateOfBirth: user.dateOfBirth,
                 sex: user.sex,
                 role: user.role,
                 createdAt: user.createdAt,
-                role: user.role
+                role: user.role,
               },
             });
           })
@@ -118,8 +129,7 @@ app.post("/login", async (req, res) => {
       .catch((e) => {
         return res.status(401).json({
           success: false,
-          message:
-            "Log in failed. Incorrect username or password",
+          message: "Log in failed. Incorrect username or password",
         });
       });
   } catch (e) {
@@ -136,9 +146,7 @@ app.post("/recovery-key", async (req, res) => {
     .lean()
     .then(async (result) => {
       if (!result) {
-        return res
-          .status(404)
-          .json({ message: "Account does not exists" });
+        return res.status(404).json({ message: "Account does not exists" });
       } else {
         await Recovery.findOne({ email: email })
           .select("email")
@@ -161,8 +169,7 @@ app.post("/recovery-key", async (req, res) => {
                     );
                     return res.status(200).json({
                       success: true,
-                      message:
-                        "Recovery key has been sent",
+                      message: "Recovery key has been sent",
                     });
                   } catch (error) {
                     return res.status(500);
@@ -239,4 +246,4 @@ app.get("/free", (req, res) => {
 app.get("/protected", auth, (req, res) => {
   res.json({ message: "Zawartość zabezpieczona. Dostęp przyznany" });
 });
-module.exports = app;
+export default app;

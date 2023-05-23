@@ -22,13 +22,31 @@ export function GenerateKey(email) {
   });
 }
 
-export function Recovery(email, key, pass) {
+export function RecoveryPass(email, key, pass, passconf) {
   return axios.post(`http://192.168.0.15:3001/auth/password-recovery`, {
     email: email,
     recoveryKey: key,
     newPassword: pass,
+    newPasswordConf: passconf
   });
 }
 export async function Messages() {
-  return await axios.get(`http://192.168.0.15:3001/api/global`);
+  return axios.get(`http://192.168.0.15:3001/api/global`);
+}
+export function CreateRoom(user, name){
+  return axios.post(`http://192.168.0.15:3001/api/create-room`, {
+    user: user,
+    name: name
+  });
+}
+export function JoinRoom(user, code){
+  return axios.post(`http://192.168.0.15:3001/api/join-room`, {
+    user: user,
+    code: code
+  });
+}
+export function Chats(user){
+  return axios.post(`http://192.168.0.15:3001/api/chats`, {
+    user: user,
+  });
 }

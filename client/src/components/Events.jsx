@@ -1,83 +1,130 @@
-import React, { useState, useEffect } from "react";
-import { useAsyncEffect } from "use-async-effect";
-import List from "@mui/material/List";
-import ListItem from "@mui/material/ListItem";
-import Divider from "@mui/material/Divider";
-import ListItemText from "@mui/material/ListItemText";
-import ListItemAvatar from "@mui/material/ListItemAvatar";
+import React, { useState, useEffect, useRef } from "react";
 import Avatar from "@mui/material/Avatar";
 import Typography from "@mui/material/Typography";
 import { Messages } from "../utils/api";
-import axios from "axios";
-export function Events({ events }) {
+import Box from "@mui/material/Box";
+import Paper from "@mui/material/Paper";
+import Stack from "@mui/material/Stack";
+import { socket } from "../socket";
+import { styled } from "@mui/material/styles";
+import CircularProgress from '@mui/material/CircularProgress';
+const Item = styled(Paper)(({ theme }) => ({
+  ...theme.typography.body2,
+  padding: theme.spacing(1),
+  textAlign: "center",
+  color: theme.palette.text.secondary,
+}));
+
+export function Events({ events, roomId }) {
   const [messages, setMessages] = useState();
+  const listRef = useRef(null);
   useEffect(() => {
-    Messages().then(data =>{
-      setMessages(data.data);
+    socket.emit('chat-history', roomId);
+    socket.on('chat-empty', msg => {
+    })
+    socket.on('chat-history-res', messages => {
+      setMessages(messages)
     })
   }, []);
-  console.log(messages);
-  const user = JSON.parse(localStorage.getItem("user"));
-  if (!messages) return <h1>Loading</h1>;
+  if (!messages) return (
+    <>
+      <Box sx={{ display: 'flex' }}>
+        <CircularProgress />
+      </Box>
+    </>
+  );
   else
     return (
       <>
-        <List sx={{ width: "100%", height: "85vh", overflow: "auto" }}>
-          {messages.map(message => (
-            <ListItem
-              alignItems={
-                message.author.username === user.username ? "flex-end" : "flex-start"
-              }
-            >
-              <ListItemAvatar>
-                <Avatar sx={{ bgcolor: message.author.avatarColor }}>
-                  {message.author.avatar.toUpperCase()}
-                </Avatar>
-              </ListItemAvatar>
-              <ListItemText
-                primary={message.author.username}
-                secondary={
-                  <React.Fragment>
-                    <Typography
-                      sx={{ display: "inline" }}
-                      component="span"
-                      variant="body2"
-                      color="text.primary"
-                    ></Typography>
-                    {message.message}
-                  </React.Fragment>
-                }
-              />
-            </ListItem>
+        <Box
+          sx={{
+            flexGrow: 1,
+            overflow: "auto",
+            px: 0,
+            maxWidth: "100%",
+            height: "85vh",
+          }}
+          className="scrollBar"
+        >
+          {messages.map((message) => (
+            <>
+              <Item
+                sx={{
+                  my: 1,
+                  p: 1,
+                  width: "fit-content",
+                  maxWidth: '60%',
+                  height: 'fit-content',
+                  borderRadius: 2,
+                }}
+              >
+                <Stack spacing={1} direction="row" alignItems="start">
+                  <Avatar sx={{
+                    bgcolor: 'blue',
+
+                    /*message.author.avatarColor 8*/}}>
+                    {message.author.name.toUpperCase().slice(0, 2)}
+                  </Avatar>
+                  <Stack direction="column">
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Typography
+                        align="left"
+                        color="rgba(255, 255, 255, 0.5)"
+                      >
+                        {message.author.name}
+                      </Typography>
+                      <Typography
+                        align="left"
+                        color="rgba(255, 255, 255, 0.2)"
+                        sx={{fontSize: 12}}
+                      >
+                        {message.date}
+                      </Typography>
+                    </Stack>
+                    <Typography align="left" sx={{ wordWrap: 'break-word' }}>{message.message}</Typography>
+                  </Stack>
+                </Stack>
+              </Item>
+            </>
           ))}
-          {events.map(event => (
-            <ListItem
-              alignItems={
-                event.sender.id === user.id ? "flex-end" : "flex-start"
-              }
+          {events.map((event) => (
+            <Item
+              sx={{
+                my: 1,
+                p: 1,
+                width: "fit-content",
+                maxWidth: '60%',
+                height: 'fit-content',
+                borderRadius: 2,
+              }}
             >
-              <ListItemAvatar>
-                <Avatar sx={{ bgcolor: event.sender.avatarColor }}>
-                  {event.sender.avatar.toUpperCase()}
+              <Stack spacing={1} direction="row" alignItems="center">
+                <Avatar sx={{ bgcolor: 'blue'/*event.sender.avatarColor*/ }}>
+                  {event.author.name.toUpperCase().slice(0, 2)}
                 </Avatar>
-              </ListItemAvatar>
-              <ListItemText
-                primary={event.sender.username}
-                secondary={
-                  <React.Fragment>
-                    <Typography
-                      sx={{ display: "inline" }}
-                      component="span"
-                      variant="body2"
-                      color="text.primary"
-                    ></Typography>
-                    {event.value}
-                  </React.Fragment>
-                }
-              />
-            </ListItem>
+                <Stack direction="column">
+                <Stack direction="row" spacing={1} alignItems="center">
+                      <Typography
+                        align="left"
+                        color="rgba(255, 255, 255, 0.5)"
+                      >
+                        {event.author.name}
+                      </Typography>
+                      <Typography
+                        align="left"
+                        color="rgba(255, 255, 255, 0.2)"
+                        sx={{fontSize: 12}}
+                      >
+                        {event.date}
+                      </Typography>
+                    </Stack>
+                  <Typography align="left" sx={{ wordWrap: 'break-word' }}>{event.message}</Typography>
+                </Stack>
+              </Stack>
+            </Item>
           ))}
-        </List>
+          <div id="l" ref={listRef}></div>
+        </Box>
       </>
     );
 }

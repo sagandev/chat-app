@@ -1,13 +1,11 @@
 import React from 'react';
 import { socket } from '../socket';
 
-export function ConnectionManager() {
+export function ConnectionManager({roomId}) {
   function connect() {
-    socket.connect();
-  }
-
-  function disconnect() {
-    socket.disconnect();
+    socket.on('connect', () => {
+      socket.emit('join', roomId)
+    });
   }
 
   return (

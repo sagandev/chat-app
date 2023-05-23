@@ -2,7 +2,7 @@ import express from "express";
 import * as dotenv from "dotenv";
 dotenv.config();
 const app = express.Router();
-import Register from "../schema/register.js";
+import User from "../schema/user.js";
 import sha256 from "crypto-js/sha256.js";
 import mailer from "../utils/mail.js";
 import generator from "generate-password";
@@ -18,8 +18,8 @@ app.post("/register", async (req, res) => {
     if (!req.body) return res.status(400).send({ message: "Unauthorized" });
     if (!password || !username || !email || !sex || !dateOfBirth)
       return res.status(400).send({ message: "Unauthorized" });
-    let user = await Register.findOne({ email: email });
-    let userName = await Register.findOne({ username: username });
+    let user = await User.findOne({ email: email });
+    let userName = await User.findOne({ username: username });
     if (user || userName) {
       return res.status(400).send({
         message: "User already exists!",
@@ -36,7 +36,7 @@ app.post("/register", async (req, res) => {
       const date = moment().subtract(10, "days").calendar();
       const us = "User";
       const colors = ['red', 'green', 'purple', 'lightblue', 'yellow', 'orange'];
-      Register.create({
+      User.create({
         username: username,
         password: passHashed,
         email: email,
@@ -81,13 +81,11 @@ app.post("/register", async (req, res) => {
 });
 
 app.post("/login", async (req, res) => {
-  console.log(process.env.SECRET);
   try {
     const { username, password } = req.body;
-    console.log(!password || !username);
     if (!password || !username)
       return res.status(400).send({ message: "Unauthorized" });
-    await Register.findOne({ username: username })
+    await User.findOne({ username: username })
       .then((user) => {
         bcrypt
           .compare(password, user.password)
@@ -105,7 +103,6 @@ app.post("/login", async (req, res) => {
               process.env.SECRET,
               { expiresIn: "24h" }
             );
-            console.log(user)
             res.status(200).send({
               success: true,
               message: "Logged in successfully",
@@ -120,7 +117,7 @@ app.post("/login", async (req, res) => {
                 sex: user.sex,
                 role: user.role,
                 createdAt: user.createdAt,
-                role: user.role,
+                role: user.role
               },
             });
           })
@@ -141,7 +138,7 @@ app.post("/recovery-key", async (req, res) => {
   if (!req.body) return res.status(400).send({ message: "Bad request" });
   const { email } = req.body;
   if (!email) return res.status(401).json({ message: "Unauthorized" });
-  Register.findOne({ email: email })
+  User.findOne({ email: email })
     .select("email")
     .lean()
     .then(async (result) => {
@@ -154,7 +151,6 @@ app.post("/recovery-key", async (req, res) => {
           .then(async (result) => {
             if (!result) {
               const unique = uniqueString();
-              console.log(unique);
               try {
                 Recovery.create({
                   email: email,
@@ -169,7 +165,7 @@ app.post("/recovery-key", async (req, res) => {
                     );
                     return res.status(200).json({
                       success: true,
-                      message: "Recovery key has been sent",
+                      message: "Recovery key has been sent. Check SPAM folder.",
                     });
                   } catch (error) {
                     return res.status(500);
@@ -193,23 +189,26 @@ app.post("/recovery-key", async (req, res) => {
 });
 app.post("/password-recovery", async (req, res) => {
   if (!req.body) return res.status(400).send({ message: "Bad request" });
-  const { email, recoveryKey, newPassword } = req.body;
-  console.log(req.body);
+  const { email, recoveryKey, newPassword, newPasswordConf} = req.body;
   if (!recoveryKey)
-    return res.status(401).json({ message: "Nie podano klucza" });
+    return res.status(401).json({ message: "Recovery key not provided" });
   if (!newPassword)
-    return res.status(401).json({ message: "Nie podano nowego hasła" });
+    return res.status(401).json({ message: "Password not provided" });
   if (newPassword.length < 8)
     return res.status(400).send({
-      message: "Hasło musi składać sie z co najmniej 8 znaków",
+      message: "The password cannot be less than 8 characters",
     });
+    if(newPassword !== newPasswordConf){
+      return res.status(400).send({
+        message: "Passwords are not identical.",
+      });
+    }
   try {
     await Recovery.findOne({ email: email })
       .select(["email", "recoveryKey"])
       .lean()
       .then(async (result) => {
         if (result) {
-          console.log(result, result.recoveryKey === recoveryKey);
           let compareKeys = result.recoveryKey === recoveryKey;
           if (compareKeys) {
             let hashedPass = await bcrypt.hash(
@@ -217,7 +216,7 @@ app.post("/password-recovery", async (req, res) => {
               Number(process.env.bcrypt_salt)
             );
             try {
-              await Register.findOneAndUpdate(
+              await User.findOneAndUpdate(
                 { email: email },
                 { password: hashedPass }
               );

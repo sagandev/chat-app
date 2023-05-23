@@ -14,7 +14,7 @@ import Typography from "@mui/material/Typography";
 import Link from "@mui/material/Link";
 import Snackbar from "@mui/material/Snackbar";
 import MuiAlert from "@mui/material/Alert";
-import { Formik} from "formik";
+import { Formik } from "formik";
 import { useNavigate } from "react-router-dom";
 import { Login } from "../../utils/api";
 import Cookies from "universal-cookie";
@@ -60,10 +60,9 @@ export default function LoginPage() {
             message: data.message,
           });
           setOpen(true);
-          console.log(data.user)
           localStorage.setItem("user", JSON.stringify(data.user))
           cookies.set("TOKEN", data.token, { path: "/" });
-          navigate("/");
+          navigate("/room/644034930563cca87c3d0106");
         })
         .catch((e) => {
           setAlertData({
@@ -138,7 +137,7 @@ export default function LoginPage() {
                       component="button"
                       variant="body2"
                       onClick={() => {
-                        console.info("I'm a button.");
+                        navigate("/recovery");
                       }}
                       align="right"
                     >

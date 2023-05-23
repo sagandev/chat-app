@@ -1,142 +1,144 @@
-import {useEffect, useState} from "react";
+import { useEffect, useState, forwardRef } from "react";
 import { styled, useTheme } from "@mui/material/styles";
 import Box from "@mui/material/Box";
 import Drawer from "@mui/material/Drawer";
 import CssBaseline from "@mui/material/CssBaseline";
-import MuiAppBar from "@mui/material/AppBar";
 import Toolbar from "@mui/material/Toolbar";
 import List from "@mui/material/List";
 import Typography from "@mui/material/Typography";
 import Divider from "@mui/material/Divider";
+import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
-import MenuIcon from "@mui/icons-material/Menu";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import Snackbar from "@mui/material/Snackbar";
 import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
+import Avatar from "@mui/material/Avatar";
 import InboxIcon from "@mui/icons-material/MoveToInbox";
-import MailIcon from "@mui/icons-material/Mail";
+import TextField from "@mui/material/TextField";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogContentText from "@mui/material/DialogContentText";
+import DialogTitle from "@mui/material/DialogTitle";
+import MuiAlert from "@mui/material/Alert";
+import CircularProgress from '@mui/material/CircularProgress';
 import { useNavigate } from "react-router-dom";
 import { socket } from "../../socket";
-import { ConnectionState } from "../../components/ConnectionState";
 import { ConnectionManager } from "../../components/ConnectionManager";
 import { MyForm } from "../../components/MyForm";
-import {Events} from "../../components/Events"
-
-import Cookies from 'universal-cookie'
+import { Events } from "../../components/Events";
+import { App } from "../../components/appBar";
+import { Main } from "../../components/main";
+import { DrawerHeader } from "../../components/DrawerHeader";
+import { CreateRoom } from "../../utils/api";
+import {Chats} from "../../utils/api"
+import {JoinRoom} from '../../utils/api'
+import {useLocation, useParams} from 'react-router-dom';
+import Cookies from "universal-cookie";
 const cookies = new Cookies();
 const drawerWidth = 240;
-
-const Main = styled("main", { shouldForwardProp: (prop) => prop !== "open" })(
-  ({ theme, open }) => ({
-    flexGrow: 1,
-    padding: theme.spacing(3),
-    transition: theme.transitions.create("margin", {
-      easing: theme.transitions.easing.sharp,
-      duration: theme.transitions.duration.leavingScreen,
-    }),
-    marginLeft: `-${drawerWidth}px`,
-    ...(open && {
-      transition: theme.transitions.create("margin", {
-        easing: theme.transitions.easing.easeOut,
-        duration: theme.transitions.duration.enteringScreen,
-      }),
-      marginLeft: 0,
-    }),
-  })
-);
-
-const AppBar = styled(MuiAppBar, {
-  shouldForwardProp: (prop) => prop !== "open",
-})(({ theme, open }) => ({
-  transition: theme.transitions.create(["margin", "width"], {
-    easing: theme.transitions.easing.sharp,
-    duration: theme.transitions.duration.leavingScreen,
-  }),
-  ...(open && {
-    width: `calc(100% - ${drawerWidth}px)`,
-    marginLeft: `${drawerWidth}px`,
-    transition: theme.transitions.create(["margin", "width"], {
-      easing: theme.transitions.easing.easeOut,
-      duration: theme.transitions.duration.enteringScreen,
-    }),
-  }),
-}));
-
-const DrawerHeader = styled("div")(({ theme }) => ({
-  display: "flex",
-  alignItems: "center",
-  padding: theme.spacing(0, 1),
-  // necessary for content to be below app bar
-  ...theme.mixins.toolbar,
-  justifyContent: "flex-end",
-}));
-
+const Alert = forwardRef(function Alert(props, ref) {
+  return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
+});
 export default function MainPage() {
-  const [isConnected, setIsConnected] = useState(socket.connected);
-  const [fooEvents, setFooEvents] = useState([]);
+  const {roomId} = useParams();
+  const [messages, setMessages] = useState([]);
+  const [openAlert, setOpenAlert] = useState(false);
+  const [alert, setAlertData] = useState([]);
+  const [room, setRoom] = useState("");
+  const [code, setCode] = useState("");
+  const [openCode, setOpenCode] = useState(false);
+  const [chats, setChats] = useState();
+  const [openCreate, setOpenCreate] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [openJoin, setOpenJoin] = useState(false)
   const user = JSON.parse(localStorage.getItem("user"));
   const navigate = useNavigate();
   useEffect(() => {
-    function onConnect() {
-      setIsConnected(true);
-    }
+    socket.emit('join', {user:user, room:roomId})
+    Chats(user).then((data) => {
+      setChats(data.data)
+    }).catch(e => {
+      console.log(e)
+    })
+    function onNewMessage(value) {setMessages((previous) => [...previous, value])}
 
-    function onDisconnect() {
-      setIsConnected(false);
-    }
-
-    function onFooEvent(value) {
-        console.log(fooEvents)
-      setFooEvents((previous) => [...previous, value]);
-    }
-
-    socket.on("connect", onConnect);
-    socket.on("disconnect", onDisconnect);
-    socket.on("chat message", onFooEvent);
-
+    socket.on("message", onNewMessage);
     return () => {
-      socket.off("connect", onConnect);
-      socket.off("disconnect", onDisconnect);
-      socket.off("chat message", onFooEvent);
+      socket.off("message", onNewMessage);
     };
   }, []);
   const theme = useTheme();
-  const [open, setOpen] = useState(false);
-
-  const handleDrawerOpen = () => {
-    setOpen(true);
+  const handleDrawerOpen = () => {setOpen(true)};
+  const handleDrawerClose = () => {setOpen(false)};
+  const handleClickOpen = () => {setOpenCreate(true)};
+  const handleClose = () => {setOpenCreate(false)};
+  const handleCloseAlert = () => {setOpenAlert(false)};
+  const handleCloseCode = () => {setOpenCode(false)};
+  const handleToggleJoin = () => {setOpenJoin(!openJoin)};
+  const handleCreate = (e) => {
+    e.preventDefault();
+    if (room.length < 1) return;
+    CreateRoom(user, room)
+      .then((data) => {
+        setCode(data.data);
+        setAlertData({
+          type: "success",
+          message: `Room "${room}" has been created. Save the access code.`,
+        });
+        setOpenAlert(true);
+        handleClose();
+        setOpenCode(true)
+      })
+      .catch((e) => {
+        setAlertData({
+          type: "error",
+          message: e.response.data.message,
+        });
+        setOpenAlert(true);
+        handleClose();
+      });
   };
-
-  const handleDrawerClose = () => {
-    setOpen(false);
+  const handleJoin = (e) => {
+    e.preventDefault();
+    if (code.length < 1) return;
+    JoinRoom(user, code)
+      .then((data) => {
+        setAlertData({
+          type: "success",
+          message: data.message,
+        });
+        setOpenAlert(true);
+        handleToggleJoin()
+        setOpenCode(true)
+      })
+      .catch((e) => {
+        setAlertData({
+          type: "error",
+          message: e.response.data.message,
+        });
+        setOpenAlert(true);
+        handleToggleJoin();
+      });
   };
-
   const logout = () => {
-    cookies.remove("TOKEN", {path: '/'})
-    navigate("/login")
-  }
+    cookies.remove("TOKEN", { path: "/" });
+    navigate("/login");
+  };
+  if(!chats) return     <>
+  <Box sx={{ display: 'flex' }}>
+    <CircularProgress />
+  </Box>
+  </>;
+  else
   return (
     <Box sx={{ display: "flex" }}>
       <CssBaseline />
-      <AppBar position="fixed" open={open}>
-        <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            onClick={handleDrawerOpen}
-            edge="start"
-            sx={{ mr: 2, ...(open && { display: "none" }) }}
-          >
-            <MenuIcon />
-          </IconButton>
-          <Typography variant="h6" noWrap component="div">
-            Hello {user.username}.
-          </Typography>
-        </Toolbar>
-      </AppBar>
+      <App open={open} handleDrawerOpen={handleDrawerOpen} user={user}/>
       <Drawer
         sx={{
           width: drawerWidth,
@@ -161,57 +163,170 @@ export default function MainPage() {
         </DrawerHeader>
         <Divider />
         <List>
-          {["Home", "Settings", "Create room", "Manage room"].map((text, index) => (
-            <ListItem key={text} disablePadding>
-              <ListItemButton>
-                <ListItemIcon>
-                  {index % 2 === 0 ? <InboxIcon /> : <MailIcon />}
-                </ListItemIcon>
-                <ListItemText primary={text} />
-              </ListItemButton>
-            </ListItem>
-          ))}
+          <ListItem key={"Home"} disablePadding>
+            <ListItemButton>
+              <ListItemIcon>
+                <InboxIcon />
+              </ListItemIcon>
+              <ListItemText primary={"Home"} />
+            </ListItemButton>
+          </ListItem>
+          <ListItem
+            key={"Create room"}
+            disablePadding
+            onClick={handleClickOpen}
+          >
+            <ListItemButton>
+              <ListItemIcon>
+                <InboxIcon />
+              </ListItemIcon>
+              <ListItemText primary={"Create room"} />
+            </ListItemButton>
+          </ListItem>
+          <ListItem key={"Join room"} disablePadding onClick={handleToggleJoin}>
+            <ListItemButton>
+              <ListItemIcon>
+                <InboxIcon />
+              </ListItemIcon>
+              <ListItemText primary={"Join room"} />
+            </ListItemButton>
+          </ListItem>
         </List>
         <Divider />
         <List>
-          {["All mail", "Trash", "Spam"].map((text, index) => (
-            <ListItem key={text} disablePadding>
-              <ListItemButton>
+          {chats.length > 0 ? chats.map((chat, index) => (
+            <ListItem key={chat._id} disablePadding>
+              <ListItemButton onClick={() => {
+                navigate(`/room/${chat._id}`);
+                window.location.reload(false)
+              }}>
                 <ListItemIcon>
-                  {index % 2 === 0 ? <InboxIcon /> : <MailIcon />}
+                <Avatar>
+                    {chat.name.substring(0,2).toUpperCase()}
+                  </Avatar>
                 </ListItemIcon>
-                <ListItemText primary={text} />
+                <ListItemText primary={chat.name} />
               </ListItemButton>
             </ListItem>
-          ))}
+          )):<><Typography sx={{pl: 2}}>No joined chats yet</Typography></>}
         </List>
         <Divider />
         <List>
-        <ListItem key={"Profile"} disablePadding>
-              <ListItemButton>
-                <ListItemIcon>
-                  <InboxIcon />
-                </ListItemIcon>
-                <ListItemText primary={"Profile"} />
-              </ListItemButton>
-            </ListItem>
-            <ListItem key={"Logout"} disablePadding>
-              <ListItemButton onClick={() => logout()}>
-                <ListItemIcon>
-                  <InboxIcon />
-                </ListItemIcon>
-                <ListItemText primary={"Logout"} />
-              </ListItemButton>
-            </ListItem>
+          <ListItem key={"Profile"} disablePadding>
+            <ListItemButton>
+              <ListItemIcon>
+                <InboxIcon />
+              </ListItemIcon>
+              <ListItemText primary={"Profile"} />
+            </ListItemButton>
+          </ListItem>
+          <ListItem key={"Logout"} disablePadding>
+            <ListItemButton onClick={() => logout()}>
+              <ListItemIcon>
+                <InboxIcon />
+              </ListItemIcon>
+              <ListItemText primary={"Logout"} />
+            </ListItemButton>
+          </ListItem>
         </List>
       </Drawer>
-      <Main open={open} sx={{paddingLeft: 1}}>
+      <Main open={open} sx={{ paddingLeft: 1, paddingRight: 1, pb: 0 }}>
         <DrawerHeader />
-        <ConnectionState isConnected={isConnected} />
-        <Events events={fooEvents}/>
+        <Events events={messages} roomId={roomId} user={user}/>
         <ConnectionManager />
-        <MyForm />
+        <MyForm roomId={roomId}/>
       </Main>
+      <div>
+        <Dialog open={openCreate} onClose={handleClose}>
+          <DialogTitle>Create room</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              To create a new room, please enter it's name here. And optionally
+              logo
+            </DialogContentText>
+            <TextField
+              autoFocus
+              margin="dense"
+              id="name"
+              placeholder="Room name"
+              fullWidth
+              type="text"
+              variant="standard"
+              value={room}
+              onChange={(e) => {
+                setRoom(e.target.value);
+              }}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleClose}>Cancel</Button>
+            <Button onClick={handleCreate}>Create</Button>
+          </DialogActions>
+        </Dialog>
+        </div>
+        <div>
+        <Dialog open={openJoin} onClose={handleToggleJoin}>
+          <DialogTitle>Join to room</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              To join to room, please enter it's access code here.
+            </DialogContentText>
+            <TextField
+              autoFocus
+              margin="dense"
+              id="name"
+              placeholder="Access code"
+              fullWidth
+              type="text"
+              variant="standard"
+              value={room}
+              onChange={(e) => {
+                setRoom(e.target.value);
+              }}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleToggleJoin}>Cancel</Button>
+            <Button onClick={handleJoin}>Join</Button>
+          </DialogActions>
+        </Dialog>
+        </div>
+        <div>
+          <Dialog
+            open={openCode}
+            TransitionComponent={"test"}
+            keepMounted
+            onClose={handleCloseCode}
+            aria-describedby="alert-dialog-slide-description"
+          >
+            <DialogTitle>{"Access code to room: "+room}</DialogTitle>
+            <DialogContent>
+              <DialogContentText id="alert-dialog-slide-description">
+                {code}
+              </DialogContentText>
+              <Divider />
+              <DialogContentText id="alert-dialog-slide-description">
+                https://chat.saganowski.ovh/room/{code}
+              </DialogContentText>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={handleCloseCode}>Close</Button>
+            </DialogActions>
+          </Dialog>
+        </div>
+        <Snackbar
+          open={openAlert}
+          autoHideDuration={4000}
+          onClose={handleCloseAlert}
+        >
+          <Alert
+            onClose={handleClose}
+            severity={alert.type}
+            sx={{ width: "100%" }}
+          >
+            {alert.message}
+          </Alert>
+        </Snackbar>
     </Box>
   );
 }

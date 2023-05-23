@@ -23,36 +23,12 @@ import MenuItem from "@mui/material/MenuItem";
 import dayjs, { Dayjs } from "dayjs";
 import { Register } from "../../utils/api";
 import moment from 'moment'
+import {GenerateKey, RecoveryPass} from '../../utils/api';
 import Cookies from "universal-cookie";
 const validate = (values) => {
   const errors = {};
-  if (!values.username) {
-    errors.username = "*";
-  } else if (values.username.length > 20) {
-    errors.username = "Username too long";
-  } else if (values.username.length < 2) {
-    errors.username = "Username too short";
-  }
   if (!values.email) {
     errors.email = "*";
-  } else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i.test(values.email)) {
-    errors.email = "Invalid email address";
-  }
-  if (!values.password) {
-    errors.password = "*";
-  } else if (values.password.length < 8) {
-    errors.password = "Password is too weak";
-  }
-  if (!values.confirm) {
-    errors.confirm = "*";
-  } else if (values.confirm !== values.password) {
-    errors.confirm = "Passwords are not identical";
-  }
-  if (!values.dateofbirth) {
-    errors.dateofbirth = "*";
-  }
-  if (!values.gender) {
-    errors.gender = "*";
   }
   return errors;
 };
@@ -76,36 +52,78 @@ export default function RegisterPage() {
     setOpen(false);
   };
   const [value, setValue] = useState();
+  const [email, setEmail] = useState([])
+  const [keySent, setKeySent] = useState(false);
   const formik = useFormik({
     initialValues: {
-      username: "",
       email: "",
-      password: "",
-      confirm: "",
-      dateofbirth: "",
-      gender: "",
     },
     validate,
     onSubmit: (values) => {
-      //console.log(values);
-      const { username, email, password, gender } = values;
-      const dateofbirth = moment(values.dateofbirth).format("DD/MM/YYYY");
-      Register(username, email, password, dateofbirth, gender)
+      const { email } = values;
+      setEmail({email});
+      GenerateKey(email)
+        .then(({ data }) => {
+          setKeySent(true);
+          setAlertData({
+            type: "success",
+            message: data.message,
+          });
+          setOpen(true);
+        })
+        .catch((e) => {
+          console.log(e)
+          if(e?.response.data.success === true){
+            setKeySent(true);
+          }
+          setAlertData({
+            type: "warning",
+            message: e.response.data.message,
+          });
+          setOpen(true);
+        });
+    },
+  });
+  const formikPass = useFormik({
+    initialValues: {
+      recoveryKey: "",
+      newPassword: "",
+      newPasswordConf: ""
+    },
+    vaidate: (values) => {
+      const errors = {};
+      if (!values.recoveryKey) {
+        errors.recoveryKey = "*";
+      }
+      if (values.newPassword.length < 1) {
+        errors.newPassword = "*";
+      } else if (values.newPassword.length < 8) {
+        errors.newPassword = "Password must ";
+      }
+      if(values.newPassword !== values.newPasswordConf){
+        errors.newPassword = "Passwords are not identical";
+        errors.newPasswordConf = "Passwords are not identical";
+      }
+      if(!values.newPasswordConf){
+        errors.newPasswordConf = "*";
+      }
+      return errors;
+    },
+    onSubmit: (values) => {
+      const {recoveryKey, newPassword, newPasswordConf } = values;
+      RecoveryPass(email.email, recoveryKey, newPassword, newPasswordConf)
         .then(({ data }) => {
           setAlertData({
             type: "success",
             message: data.message,
           });
           setOpen(true);
-          setTimeout(function(){
-            navigate("/login")
-          }, 3000)
         })
         .catch((e) => {
-          console.log(e)
+          console.log(e);
           setAlertData({
             type: "error",
-            message: e.response.data.message,
+            message: `${e?.response.data.message}`,
           });
           setOpen(true);
         });
@@ -117,18 +135,8 @@ export default function RegisterPage() {
         <form onSubmit={formik.handleSubmit}>
           <Stack spacing={2} sx={{ padding: 1, marginTop: "20vh" }}>
             <Typography variant="h4" component="h4" align="center">
-              SIGN UP
+              PASSWORD RECOVERY
             </Typography>
-            <TextField
-              error={Boolean(formik.errors.username)}
-              sx={{ width: "100%" }}
-              id="outlined-basic"
-              name="username"
-              label="Username"
-              variant="outlined"
-              onChange={formik.handleChange}
-              value={formik.values.username}
-            />
             <TextField
               error={Boolean(formik.errors.email)}
               sx={{ width: "100%" }}
@@ -139,21 +147,57 @@ export default function RegisterPage() {
               onChange={formik.handleChange}
               value={formik.values.email}
             />
-            <Stack spacing={1} direction="row">
+            <Stack spacing={2} direction="row" justifyContent="space-between">
+              <Link
+                component="button"
+                variant="body2"
+                onClick={() => {
+                  console.info("I'm a button.");
+                }}
+                align="right"
+              >
+                Log In
+              </Link>
+            </Stack>
+            <Button type="submit" variant="outlined" sx={{ width: "100%" }}>
+              Generate key
+            </Button>
+          </Stack>
+          </form>
+            {keySent ? (<>
+              <form onSubmit={formikPass.handleSubmit}>
+                <Stack spacing={2} sx={{ padding: 1}}>
+                <FormControl
+                sx={{ width: "100%" }}
+                variant="outlined"
+                error={Boolean(formikPass.errors.recoveryKey)}
+              >
+                <InputLabel htmlFor="outlined-adornment-password">
+                  Recovery code
+                </InputLabel>
+                <OutlinedInput
+                  id="recoveryKey"
+                  name="recoveryKey"
+                  type={"text"}
+                  onChange={formikPass.handleChange}
+                  value={formikPass.values.recoveryKey}
+                  label="RecoveryCode"
+                />
+                </FormControl>
               <FormControl
                 sx={{ width: "100%" }}
                 variant="outlined"
-                error={Boolean(formik.errors.password)}
+                error={Boolean(formikPass.errors.newPassword)}
               >
                 <InputLabel htmlFor="outlined-adornment-password">
                   Password
                 </InputLabel>
                 <OutlinedInput
-                  id="outlined-adornment-password"
-                  name="password"
+                  id="newPassword"
+                  name="newPassword"
                   type={showPassword ? "text" : "password"}
-                  onChange={formik.handleChange}
-                  value={formik.values.password}
+                  onChange={formikPass.handleChange}
+                  value={formikPass.values.newPassword}
                   endAdornment={
                     <InputAdornment position="end">
                       <IconButton
@@ -173,17 +217,17 @@ export default function RegisterPage() {
               <FormControl
                 sx={{ width: "100%" }}
                 variant="outlined"
-                error={Boolean(formik.errors.confirm)}
+                error={Boolean(formikPass.errors.newPasswordConf)}
               >
                 <InputLabel htmlFor="outlined-adornment-password">
-                  Confirm
+                  Confirm Password
                 </InputLabel>
                 <OutlinedInput
                   id="outlined-adornment-password"
-                  name="confirm"
+                  name="newPasswordConf"
                   type={showPassword ? "text" : "password"}
-                  onChange={formik.handleChange}
-                  value={formik.values.confirm}
+                  onChange={formikPass.handleChange}
+                  value={formikPass.values.newPasswordConf}
                   endAdornment={
                     <InputAdornment position="end">
                       <IconButton
@@ -196,49 +240,15 @@ export default function RegisterPage() {
                       </IconButton>
                     </InputAdornment>
                   }
-                  label="Confirm"
+                  label="Confirm Password"
                 />
               </FormControl>
-            </Stack>
-            <DatePicker
-              label="Date of birth"
-              name="dateofbirth"
-              inputFormat="DD/MM/YYYY"
-              value={formik.values.dateofbirth}
-              onChange={date => formik.setFieldValue('dateofbirth', date)}
-            />
-            <FormControl fullWidth>
-              <InputLabel id="demo-simple-select-label">Gender</InputLabel>
-              <Select
-                name="gender"
-                labelId="demo-simple-select-label"
-                id="demo-simple-select"
-                value={formik.values.gender}
-                label="Gender"
-                onChange={formik.handleChange}
-              >
-                <MenuItem value={"Male"}>Male</MenuItem>
-                <MenuItem value={"Female"}>Female</MenuItem>
-                <MenuItem value={"N/A"}>Rather not say</MenuItem>
-              </Select>
-            </FormControl>
-            <Stack spacing={2} direction="row" justifyContent="space-between">
-              <Link
-                component="button"
-                variant="body2"
-                onClick={() => {
-                  console.info("I'm a button.");
-                }}
-                align="right"
-              >
-                Log In
-              </Link>
-            </Stack>
-            <Button type="submit" variant="contained" sx={{ width: "100%" }}>
-              Sign Up
+              <Button type="submit" variant="contained" sx={{ width: "100%" }}>
+              Change password
             </Button>
-          </Stack>
-        </form>
+            </Stack>
+            </form>
+            </>): null }
         <Snackbar open={open} autoHideDuration={4000} onClose={handleClose}>
           <Alert
             onClose={handleClose}

@@ -1,33 +1,31 @@
-import React, { useState, useContext } from "react";
-import { styled } from "@mui/material/styles";
-import Box from "@mui/material/Box";
+import React, { useState, useRef } from "react";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import SendIcon from "@mui/icons-material/Send";
 import { socket } from "../socket";
-import Paper from "@mui/material/Paper";
 import Grid from "@mui/material/Grid";
 import EmojiPicker from "emoji-picker-react";
 import EmojiEmotionsIcon from "@mui/icons-material/EmojiEmotions";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
-import { UserContext } from "../utils/context/user";
-export function MyForm() {
-  const [value, setValue] = useState("");
+export function MyForm({roomId}) {
+  const [value, setValue] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const user = JSON.parse(localStorage.getItem("user"));
   function onSubmit(event) {
     event.preventDefault();
+    if(value.length < 1) return;
     setIsLoading(true);
-    console.log(user);
     const v = {
-      value: value,
-      sender: user,
+      message: value,
+      user: user,
+      room: roomId
     };
-    socket.timeout(100).emit("chat message", v, () => {
+    socket.timeout(500).emit("new-message", v, () => {
       setIsLoading(false);
     });
+    setValue("")
   }
   const [ShowEmojiBar, setShowEmojiBar] = useState(false);
 
@@ -35,7 +33,7 @@ export function MyForm() {
     <>
       {ShowEmojiBar ? <EmojiPicker theme="dark" /> : null}
       <form onSubmit={onSubmit}>
-        <Grid container spacing={1} justifyContent="center">
+        <Grid container spacing={1} justifyContent="center" sx={{pb:2,pt:2}}>
           <Grid item xs={0}>
             <Tooltip
               title="AttachFile"
@@ -63,14 +61,16 @@ export function MyForm() {
               </IconButton>
             </Tooltip>
           </Grid>
-          <Grid item xs={4.5} sm={9} md={10}>
+          <Grid item xs={5.5} sm={9} md={10}>
             <TextField
               hiddenLabel
-              id="filled-hidden-label-small"
-              variant="outlined"
-              placeholder="message..."
+              id="outlined-multiline-flexible"
+              label="Message"
+              multiline
+              maxRows={1}
               size="small"
               sx={{ width: "100%" }}
+              value={value}
               onChange={(e) => setValue(e.target.value)}
             />
           </Grid>
@@ -79,7 +79,7 @@ export function MyForm() {
               type="submit"
               variant="contained"
               endIcon={<SendIcon />}
-              disabled={isLoading}
+              disabled={value ? false:true}
               sx={{ width: "100%", height: "100%" }}
             >
               Send

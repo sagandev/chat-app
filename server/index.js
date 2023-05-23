@@ -14,6 +14,9 @@ import cors from"cors";
 import chat from"./src/routes/chat.js";
 import auth from"./src/routes/authorize.js";
 import Message from "./src/schema/message.js"
+import User from './src/schema/user.js'
+import Chats from './src/schema/chats.js'
+import moment from 'moment'
 app.use(
   cors({
     origin: ["http://localhost:3000","http://192.168.0.15:3000"],
@@ -41,26 +44,36 @@ mongo
 io.on("connection", (socket) => {
   console.log(`${socket.id} user connected`)
 
-  socket.on("chat message", async (msg, user) => {
-    console.log("message: " + msg);
-    console.log(msg.sender)
+  socket.on("join", async ({user, room}) => {
+    const roomDB = await Chats.findById(room);
+    if(!roomDB) return;
+    const userDB = await User.findById(user.id)
+    if(userDB.joinedChats.includes(room)){
+     socket.join(room)
+    } else {
+      socket.emit("joinError", {error: "You dont't have permissions to read this chat"})
+    }
+  })
+  socket.on("chat-history", async (room) => {
+    const messages = await Message.find({roomId: room})
+    if(!messages) return socket.emit('chat-empty', {messages: "Chat is empty"})
+    socket.emit("chat-history-res", messages)
+  })
+  socket.on("new-message", async (data) => {
     let newMess = new Message({
+      roomId: data.room,
       author: {
-        username: msg.sender.username,
-        avatar: msg.sender.avatar,
-        id: msg.sender._id,
-        avatarColor: msg.sender.avatarColor,
-        sex: msg.sender.sex,
-        role: msg.sender.role,
+        id: data.user.id,
+        name: data.user.username
       },
-      message: msg.value,
-      date: new Date().now,
+      message: data.message,
+      date: moment().format('LLL'),
     });
-    await newMess.save().catch((e) => {
-      console.log(e);
+    await newMess.save().then(res => {
+      io.to(data.room).emit("message", res)
+    }).catch((e) => {
     });
-    io.emit("chat message", msg);
-  });
+  })
 });
 
 app.use("/api", chat);

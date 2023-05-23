@@ -6,9 +6,14 @@ const schema = new mongodb.Schema({
     dateOfBirth: {type: String, require: true},
     sex: {type: String, default: "N/A", require: true},
     role: {type: String, require: true},
-    avatar: {type: String, require: true},
+    avatar: {
+        name: {type: String},
+        type: {type: String},
+        imgDate: {type: Buffer}
+    },
     createdAt: {type: String},
-    avatarColor: {type: String}
+    avatarColor: {type: String},
+    joinedChats: {type: Array}
 });
-const Register = mongodb.model("users", schema)
-export default Register;
+const User = mongodb.model("users", schema)
+export default User;

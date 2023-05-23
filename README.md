@@ -15,6 +15,7 @@ Biblioteki po stronie serwera:
 - generate-password (generator haseł)
 - nodemailer (obsługa poczty, wysyłanie powiadomień oraz kluczy)
 - socket.io (komunikacja z serwerem w czasie rzeczywistym (podstawka to tworzenia aplikacji czatu))
+- express (RESTful API)
 
 Bibliotego po stronie klienta:
 - MaterialUI (komponenty oraz style UI)

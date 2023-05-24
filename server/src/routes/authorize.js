@@ -9,7 +9,6 @@ import generator from "generate-password";
 import bcrypt from "bcrypt";
 import Recovery from "../schema/recovery.js";
 import jwt from "jsonwebtoken";
-import auth from "../utils/auth.js";
 import moment from "moment";
 import uniqueString from "unique-string";
 app.post("/register", async (req, res) => {
@@ -238,11 +237,5 @@ app.post("/password-recovery", async (req, res) => {
     console.log(error);
     return res.status(500);
   }
-});
-app.get("/free", (req, res) => {
-  res.json({ message: "Zawartość nie zabezpieczona" });
-});
-app.get("/protected", auth, (req, res) => {
-  res.json({ message: "Zawartość zabezpieczona. Dostęp przyznany" });
 });
 export default app;

@@ -42,8 +42,6 @@ mongo
   });
 
 io.on("connection", (socket) => {
-  console.log(`${socket.id} user connected`)
-
   socket.on("join", async ({user, room}) => {
     const roomDB = await Chats.findById(room);
     if(!roomDB) return;

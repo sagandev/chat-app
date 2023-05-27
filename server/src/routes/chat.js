@@ -3,12 +3,12 @@ const app = express()
 import uniqueString from 'unique-string';
 import Chat from "../schema/chats.js"
 import User from '../schema/user.js'
-app.get('/room/:id', async (req, res) => {
+app.post('/room', async (req, res) => {
     if (!req.body) return res.status(400).send({ message: "Unauthorized" });
-    const {user, code} = req.body;
-    if (!user || !code) return res.status(400).send({ message: "Unauthorized" });
-    const chats = await Chat.findOne({code: code}).catch(e => {console.log(e)});
-    if(!chats) return res.status(400).send({ message: "Chat room doesn't exists" });
+    const {id} = req.body;
+    if (!id || id.length !== 24) return res.status(400).send({ message: "Unauthorized" });
+    const chats = await Chat.findById(id).catch(e => {console.log(e)});
+    if(!chats) return res.send({valid: false});
 })
 app.post('/chats', async(req, res) => {
     if (!req.body) return res.status(400).send({ message: "Unauthorized" });

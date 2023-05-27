@@ -9,25 +9,31 @@ export function Register(nick, email, pass, dateOfbirth, sex) {
   });
 }
 
-export function Login(username, password) {
+export function Login(username, password, ip, browser) {
   return axios.post(`http://192.168.0.15:3001/auth/login`, {
     username: username,
-    password: password
+    password: password,
+    ip: ip,
+    browser: browser
   });
 }
 
-export function GenerateKey(email) {
+export function GenerateKey(email, ip, browser) {
   return axios.post(`http://192.168.0.15:3001/auth/recovery-key`, {
     email: email,
+    ip: ip,
+    browser: browser
   });
 }
 
-export function RecoveryPass(email, key, pass, passconf) {
+export function RecoveryPass(email, key, pass, passconf, ip, browser) {
   return axios.post(`http://192.168.0.15:3001/auth/password-recovery`, {
     email: email,
     recoveryKey: key,
     newPassword: pass,
-    newPasswordConf: passconf
+    newPasswordConf: passconf,
+    ip: ip,
+    browser: browser
   });
 }
 export async function Messages() {
@@ -48,5 +54,21 @@ export function JoinRoom(user, code){
 export function Chats(user){
   return axios.post(`http://192.168.0.15:3001/api/chats`, {
     user: user,
+  });
+}
+export function Room(id){
+  return axios.post(`http://192.168.0.15:3001/api/room`, {
+    id: id,
+  });
+}
+export function Logs(id){
+  return axios.post(`http://192.168.0.15:3001/user/logs`, {
+    id: id,
+  });
+}
+export function accountDelete(user, pass){
+  return axios.post(`http://192.168.0.15:3001/api/deleteacc`, {
+    user: user,
+    pass: pass,
   });
 }

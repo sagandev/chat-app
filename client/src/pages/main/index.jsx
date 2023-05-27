@@ -3,7 +3,6 @@ import { styled, useTheme } from "@mui/material/styles";
 import Box from "@mui/material/Box";
 import Drawer from "@mui/material/Drawer";
 import CssBaseline from "@mui/material/CssBaseline";
-import Toolbar from "@mui/material/Toolbar";
 import List from "@mui/material/List";
 import Typography from "@mui/material/Typography";
 import Divider from "@mui/material/Divider";
@@ -17,14 +16,18 @@ import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import Avatar from "@mui/material/Avatar";
+import LogoutIcon from '@mui/icons-material/Logout';
 import InboxIcon from "@mui/icons-material/MoveToInbox";
 import TextField from "@mui/material/TextField";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
+import AddCircleIcon from '@mui/icons-material/AddCircle';
 import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
 import MuiAlert from "@mui/material/Alert";
+import CreateIcon from '@mui/icons-material/Create';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import CircularProgress from '@mui/material/CircularProgress';
 import { useNavigate } from "react-router-dom";
 import { socket } from "../../socket";
@@ -37,7 +40,7 @@ import { DrawerHeader } from "../../components/DrawerHeader";
 import { CreateRoom } from "../../utils/api";
 import {Chats} from "../../utils/api"
 import {JoinRoom} from '../../utils/api'
-import {useLocation, useParams} from 'react-router-dom';
+import {useParams} from 'react-router-dom';
 import Cookies from "universal-cookie";
 const cookies = new Cookies();
 const drawerWidth = 240;
@@ -54,7 +57,7 @@ export default function MainPage() {
   const [openCode, setOpenCode] = useState(false);
   const [chats, setChats] = useState();
   const [openCreate, setOpenCreate] = useState(false);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const [openJoin, setOpenJoin] = useState(false)
   const user = JSON.parse(localStorage.getItem("user"));
   const navigate = useNavigate();
@@ -178,7 +181,7 @@ export default function MainPage() {
           >
             <ListItemButton>
               <ListItemIcon>
-                <InboxIcon />
+                <CreateIcon />
               </ListItemIcon>
               <ListItemText primary={"Create room"} />
             </ListItemButton>
@@ -186,7 +189,7 @@ export default function MainPage() {
           <ListItem key={"Join room"} disablePadding onClick={handleToggleJoin}>
             <ListItemButton>
               <ListItemIcon>
-                <InboxIcon />
+                <AddCircleIcon />
               </ListItemIcon>
               <ListItemText primary={"Join room"} />
             </ListItemButton>
@@ -213,9 +216,9 @@ export default function MainPage() {
         <Divider />
         <List>
           <ListItem key={"Profile"} disablePadding>
-            <ListItemButton>
+            <ListItemButton onClick={() => navigate("/profile")}>
               <ListItemIcon>
-                <InboxIcon />
+                <AccountCircleIcon />
               </ListItemIcon>
               <ListItemText primary={"Profile"} />
             </ListItemButton>
@@ -223,14 +226,14 @@ export default function MainPage() {
           <ListItem key={"Logout"} disablePadding>
             <ListItemButton onClick={() => logout()}>
               <ListItemIcon>
-                <InboxIcon />
+                <LogoutIcon />
               </ListItemIcon>
               <ListItemText primary={"Logout"} />
             </ListItemButton>
           </ListItem>
         </List>
       </Drawer>
-      <Main open={open} sx={{ paddingLeft: 1, paddingRight: 1, pb: 0 }}>
+      <Main open={open} sx={{ paddingLeft: 1, paddingRight: 0, pb: 0 }}>
         <DrawerHeader />
         <Events events={messages} roomId={roomId} user={user}/>
         <ConnectionManager />

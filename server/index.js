@@ -16,6 +16,7 @@ import auth from"./src/routes/authorize.js";
 import Message from "./src/schema/message.js"
 import User from './src/schema/user.js'
 import Chats from './src/schema/chats.js'
+import user from './src/routes/user.js';
 import moment from 'moment'
 app.use(
   cors({
@@ -25,10 +26,6 @@ app.use(
 );
 app.use(express.json());
 app.use(express.urlencoded({extended: true}));
-app.get("/", (req, res) => {
-  res.sendFile(__dirname + "/index.html");
-});
-
 mongo
   .connect(process.env.MONGO_CONNECT, {
     useNewUrlParser: true,
@@ -43,6 +40,11 @@ mongo
 
 io.on("connection", (socket) => {
   socket.on("join", async ({user, room}) => {
+    if(room){
+      if(room.length !== 24) return socket.emit('chat-empty', {messages: "Chat doesn't exists"});
+    } else {
+      return;
+    }
     const roomDB = await Chats.findById(room);
     if(!roomDB) return;
     const userDB = await User.findById(user.id)
@@ -53,6 +55,7 @@ io.on("connection", (socket) => {
     }
   })
   socket.on("chat-history", async (room) => {
+    if(room.length !== 24) return socket.emit('chat-empty', {messages: "Chat doesn't exists"});
     const messages = await Message.find({roomId: room})
     if(!messages) return socket.emit('chat-empty', {messages: "Chat is empty"})
     socket.emit("chat-history-res", messages)
@@ -76,6 +79,7 @@ io.on("connection", (socket) => {
 
 app.use("/api", chat);
 app.use("/auth", auth)
+app.use("/user", user)
 server.listen(3001, () => {
   console.log("listening on *:3001");
 });

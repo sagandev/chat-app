@@ -5,18 +5,18 @@ export default async function mailer(receiver, title, text, html) {
     smtpTransport({
       host: "ssl0.ovh.net",
       port: 465,
-      secure: true, // true for 465, false for other ports
+      secure: true, 
       auth: {
-        user: "patryk@saganowski.ovh", // generated ethereal user
-        pass: process.env.PASSWORD_MAIL, // generated ethereal password
+        user: "patryk@saganowski.ovh", 
+        pass: process.env.PASSWORD_MAIL, 
       },
     })
   );
   let info = await transporter.sendMail({
-    from: '"[DEV] Administrator" <patryk@saganowski.ovh>', // sender address
-    to: receiver, // list of receivers
-    subject: title, // Subject line
-    text: text, // plain text body
-    html: html, // html body
+    from: '"[no-reply] Administrator" <patryk@saganowski.ovh>', 
+    to: receiver, 
+    subject: title, 
+    text: text, 
+    html: html,
   });
 }

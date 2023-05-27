@@ -9,6 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@superfaceai/one-sdk": "^2.4.2",
     "bcrypt": "^5.1.0",
     "cors": "^2.8.5",
     "crypto-js": "^4.1.1",

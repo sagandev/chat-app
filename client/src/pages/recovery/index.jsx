@@ -1,4 +1,4 @@
-import { useState, forwardRef } from "react";
+import { useState, forwardRef, useEffect } from "react";
 
 import Container from "@mui/material/Container";
 import FormControl from "@mui/material/FormControl";
@@ -17,14 +17,8 @@ import Snackbar from "@mui/material/Snackbar";
 import MuiAlert, { AlertProps } from "@mui/material/Alert";
 import { useFormik, Field } from "formik";
 import { Navigate, useNavigate } from "react-router-dom";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import Select from "@mui/material/Select";
-import MenuItem from "@mui/material/MenuItem";
-import dayjs, { Dayjs } from "dayjs";
-import { Register } from "../../utils/api";
-import moment from 'moment'
 import {GenerateKey, RecoveryPass} from '../../utils/api';
-import Cookies from "universal-cookie";
+import axios from "axios";
 const validate = (values) => {
   const errors = {};
   if (!values.email) {
@@ -39,6 +33,7 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [open, setOpen] = useState(false);
   const [alert, setAlertData] = useState([]);
+  const [ip, setIP] = useState("");
   const handleClickShowPassword = () => setShowPassword((show) => !show);
   const navigate = useNavigate();
   const handleMouseDownPassword = (event) => {
@@ -54,6 +49,14 @@ export default function RegisterPage() {
   const [value, setValue] = useState();
   const [email, setEmail] = useState([])
   const [keySent, setKeySent] = useState(false);
+  const getip = async () => {
+    const res = await axios.get("https://api.ipify.org/?format=json");
+    console.log(res.data);
+    setIP(res.data.ip);
+  };
+  useEffect(() => {
+    getip();
+  }, []);
   const formik = useFormik({
     initialValues: {
       email: "",
@@ -62,7 +65,7 @@ export default function RegisterPage() {
     onSubmit: (values) => {
       const { email } = values;
       setEmail({email});
-      GenerateKey(email)
+      GenerateKey(email, ip, window.navigator.userAgent)
         .then(({ data }) => {
           setKeySent(true);
           setAlertData({
@@ -111,7 +114,7 @@ export default function RegisterPage() {
     },
     onSubmit: (values) => {
       const {recoveryKey, newPassword, newPasswordConf } = values;
-      RecoveryPass(email.email, recoveryKey, newPassword, newPasswordConf)
+      RecoveryPass(email.email, recoveryKey, newPassword, newPasswordConf, ip, window.navigator.userAgent)
         .then(({ data }) => {
           setAlertData({
             type: "success",
@@ -149,10 +152,9 @@ export default function RegisterPage() {
             />
             <Stack spacing={2} direction="row" justifyContent="space-between">
               <Link
-                component="button"
                 variant="body2"
                 onClick={() => {
-                  console.info("I'm a button.");
+                  navigate('/login')
                 }}
                 align="right"
               >

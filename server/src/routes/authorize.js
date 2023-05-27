@@ -11,6 +11,31 @@ import Recovery from "../schema/recovery.js";
 import jwt from "jsonwebtoken";
 import moment from "moment";
 import uniqueString from "unique-string";
+import Logs from "../schema/login-logs.js";
+import { SuperfaceClient } from "@superfaceai/one-sdk";
+const sdk = new SuperfaceClient();
+async function getIpInfo(ip) {
+  const profile = await sdk.getProfile("address/ip-geolocation@1.0.1");
+  const result = await profile.getUseCase("IpGeolocation").perform(
+    {
+      ipAddress: ip,
+    },
+    {
+      provider: "ipdata",
+      security: {
+        apikey: {
+          apikey: "b8af912620e193f0ce6b4a736f73ac95ca210952cd321b80b6737d3c",
+        },
+      },
+    }
+  );
+  try {
+    const data = result.unwrap();
+    return data;
+  } catch (error) {
+    console.error(error);
+  }
+}
 app.post("/register", async (req, res) => {
   try {
     const { username, password, email, sex, dateOfBirth } = req.body;
@@ -34,7 +59,14 @@ app.post("/register", async (req, res) => {
       );
       const date = moment().subtract(10, "days").calendar();
       const us = "User";
-      const colors = ['red', 'green', 'purple', 'lightblue', 'yellow', 'orange'];
+      const colors = [
+        "red",
+        "green",
+        "purple",
+        "lightblue",
+        "yellow",
+        "orange",
+      ];
       User.create({
         username: username,
         password: passHashed,
@@ -44,7 +76,7 @@ app.post("/register", async (req, res) => {
         role: us,
         avatar: username.substring(0, 2),
         createdAt: date,
-        avatarColor: colors[Math.floor(Math.random() * colors.length)]
+        avatarColor: colors[Math.floor(Math.random() * colors.length)],
       })
         .then((user) => {
           const u = {
@@ -55,7 +87,7 @@ app.post("/register", async (req, res) => {
             email: user.email,
             role: user.role,
             sex: user.sex,
-            avatarColor: user.avatarColor
+            avatarColor: user.avatarColor,
           };
           res.status(200).json({
             message: "Signed up successfully",
@@ -81,9 +113,10 @@ app.post("/register", async (req, res) => {
 
 app.post("/login", async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { username, password, ip, browser } = req.body;
     if (!password || !username)
       return res.status(400).send({ message: "Unauthorized" });
+    const ipinfo = await getIpInfo(ip);
     await User.findOne({ username: username })
       .then((user) => {
         bcrypt
@@ -116,8 +149,34 @@ app.post("/login", async (req, res) => {
                 sex: user.sex,
                 role: user.role,
                 createdAt: user.createdAt,
-                role: user.role
+                role: user.role,
               },
+            });
+
+            console.log(ipinfo);
+            console.log({
+              userId: user._id,
+              type: "WARNING",
+              date:
+                moment().subtract(10, "days").calendar() +
+                " " +
+                moment().format("LT"),
+              ipAddr: ip,
+              localization: ipinfo.addressLocality,
+              browser: browser,
+              action: "USER_LOGIN",
+            });
+            Logs.create({
+              userId: user._id,
+              type: "WARNING",
+              date:
+                moment().subtract(10, "days").calendar() +
+                " " +
+                moment().format("LT"),
+              ipAddr: ipinfo.ipAddress,
+              localization: `${ipinfo.addressLocality} - ${ipinfo.addressRegion} (${ipinfo.addressCountry})`,
+              browser: browser,
+              action: "USER_LOGIN",
             });
           })
           .catch((e) => console.log(e));
@@ -135,8 +194,9 @@ app.post("/login", async (req, res) => {
 
 app.post("/recovery-key", async (req, res) => {
   if (!req.body) return res.status(400).send({ message: "Bad request" });
-  const { email } = req.body;
+  const { email, ip, browser } = req.body;
   if (!email) return res.status(401).json({ message: "Unauthorized" });
+  const ipinfo = await getIpInfo(ip);
   User.findOne({ email: email })
     .select("email")
     .lean()
@@ -144,6 +204,7 @@ app.post("/recovery-key", async (req, res) => {
       if (!result) {
         return res.status(404).json({ message: "Account does not exists" });
       } else {
+        const id = result._id;
         await Recovery.findOne({ email: email })
           .select("email")
           .lean()
@@ -162,6 +223,18 @@ app.post("/recovery-key", async (req, res) => {
                       `Recovery key`,
                       `Your recovery key: <b>${user.recoveryKey}</b><br><br><i>chatapp.saganowski.ovh</i>`
                     );
+                    Logs.create({
+                      userId: id,
+                      type: "WARNING",
+                      date:
+                        moment().subtract(10, "days").calendar() +
+                        " " +
+                        moment().format("LT"),
+                      ipAddr: ipinfo.ipAddress,
+                      localization: `${ipinfo.addressLocality} - ${ipinfo.addressRegion} (${ipinfo.addressCountry})`,
+                      browser: browser,
+                      action: "RECOVERY_KEY_SENT",
+                    });
                     return res.status(200).json({
                       success: true,
                       message: "Recovery key has been sent. Check SPAM folder.",
@@ -188,7 +261,8 @@ app.post("/recovery-key", async (req, res) => {
 });
 app.post("/password-recovery", async (req, res) => {
   if (!req.body) return res.status(400).send({ message: "Bad request" });
-  const { email, recoveryKey, newPassword, newPasswordConf} = req.body;
+  const { email, recoveryKey, newPassword, newPasswordConf, ip, browser } =
+    req.body;
   if (!recoveryKey)
     return res.status(401).json({ message: "Recovery key not provided" });
   if (!newPassword)
@@ -197,11 +271,12 @@ app.post("/password-recovery", async (req, res) => {
     return res.status(400).send({
       message: "The password cannot be less than 8 characters",
     });
-    if(newPassword !== newPasswordConf){
-      return res.status(400).send({
-        message: "Passwords are not identical.",
-      });
-    }
+  if (newPassword !== newPasswordConf) {
+    return res.status(400).send({
+      message: "Passwords are not identical.",
+    });
+  }
+  const ipinfo = await getIpInfo(ip);
   try {
     await Recovery.findOne({ email: email })
       .select(["email", "recoveryKey"])
@@ -218,18 +293,31 @@ app.post("/password-recovery", async (req, res) => {
               await User.findOneAndUpdate(
                 { email: email },
                 { password: hashedPass }
-              );
+              ).then((result) => {
+                Logs.create({
+                  userId: result._id,
+                  type: "INFO",
+                  date:
+                    moment().subtract(10, "days").calendar() +
+                    " " +
+                    moment().format("LT"),
+                  ipAddr: ipinfo.ipAddress,
+                  localization: `${ipinfo.addressLocality} - ${ipinfo.addressRegion} (${ipinfo.addressCountry})`,
+                  browser: browser,
+                  action: "PASSWORD_RECOVERED",
+                });
+              });
               await Recovery.findOneAndDelete({ email: email });
               return res.status(200).json({
                 success: true,
-                message: "Zmiana hasła powiodła się",
+                message: "Password changed successfully",
               });
             } catch (error) {
               console.log(error);
               return res.status(500);
             }
           } else {
-            res.status(400).json({ message: "Klucz nie jest poprawny" });
+            res.status(400).json({ message: "Invalid recovery key" });
           }
         }
       });
@@ -237,5 +325,37 @@ app.post("/password-recovery", async (req, res) => {
     console.log(error);
     return res.status(500);
   }
+});
+app.post("/deleteacc", (req, res) => {
+  if (req.body) return res.status(400).json({ message: "Bad request" });
+  const { user, password } = req.body;
+  if (!user) return res.status(400).json({ message: "Unauthorized" });
+  const userDB = User.findOneById(user.id)
+    .then((user) => {
+      if (user) {
+        bcrypt.compare(password, user.password).then((response) => {
+          if (!response)
+            return res.status(401).json({
+              success: false,
+              message: "Log in failed. Incorrect username or password",
+            });
+        });
+        User.findByIdAndDelete(user.id).catch((e) => {
+          console.log(e);
+        });
+        return res.send(200).json({
+          success: true,
+          message: "Account deleted successfully",
+        });
+      } else {
+        return res.send(400).json({
+          success: false,
+          message: "Account does not exists",
+        });
+      }
+    })
+    .catch((e) => {
+      console.log(e);
+    });
 });
 export default app;
